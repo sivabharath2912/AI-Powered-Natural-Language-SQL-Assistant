@@ -118,42 +118,56 @@ st.sidebar.title(
 )
 
 
-
 # ================= Database Statistics =================
-
-employee_columns, employee_rows = execute_query(
-    "SELECT COUNT(*) AS total_employees FROM employees",
-    db_path
-)
-
-department_columns, department_rows = execute_query(
-    "SELECT COUNT(*) AS total_departments FROM departments",
-    db_path
-)
-
-salary_columns, salary_rows = execute_query(
-    "SELECT AVG(salary) AS average_salary FROM employees",
-    db_path
-)
 
 st.sidebar.subheader(
     "Database Statistics"
 )
 
-st.sidebar.metric(
-    "Total Employees",
-    employee_rows[0][0]
+import sqlite3
+
+conn = sqlite3.connect(
+    db_path
 )
 
-st.sidebar.metric(
-    "Total Departments",
-    department_rows[0][0]
+cursor = conn.cursor()
+
+# Get all tables
+cursor.execute(
+    "SELECT name FROM sqlite_master WHERE type='table';"
 )
 
+tables = cursor.fetchall()
+
+# Total number of tables
 st.sidebar.metric(
-    "Average Salary",
-    round(salary_rows[0][0], 2)
+    "Tables",
+    len(tables)
 )
+
+# Number of rows in each table
+for table in tables:
+
+    table_name = table[0]
+
+    try:
+
+        cursor.execute(
+            f"SELECT COUNT(*) FROM {table_name}"
+        )
+
+        row_count = cursor.fetchone()[0]
+
+        st.sidebar.metric(
+            table_name,
+            row_count
+        )
+
+    except:
+
+        pass
+
+conn.close()
 
 st.sidebar.subheader(
     "Query History"
@@ -283,54 +297,32 @@ if (
 
     # ================= Salary Distribution =================
 
+# ================= Dynamic Chart =================
+
+    numeric_columns = df.select_dtypes(
+        include=["int64", "float64"]
+    ).columns
+
     if (
         "name" in df.columns
-        and "salary" in df.columns
+        and len(numeric_columns) > 0
     ):
 
+        selected_column = numeric_columns[-1]
+
         st.subheader(
-            "Salary Distribution"
+            f"{selected_column} Distribution"
         )
 
-        salary_df = df[
-            ["name", "salary"]
+        chart_df = df[
+            ["name", selected_column]
         ]
 
         st.bar_chart(
-            salary_df.set_index(
+            chart_df.set_index(
                 "name"
             )
         )
-
-    # ================= Department Analytics =================
-
-    dept_columns, dept_rows = execute_query(
-    """
-    SELECT
-        d.department_name,
-        COUNT(*) AS employee_count
-    FROM employees e
-    JOIN departments d
-    ON e.department_id = d.department_id
-    GROUP BY d.department_name
-    """,
-    db_path
-    )
-
-    dept_df = pd.DataFrame(
-        dept_rows,
-        columns=dept_columns
-    )
-
-    st.subheader(
-        "Employees per Department"
-    )
-
-    st.bar_chart(
-        dept_df.set_index(
-            "department_name"
-        )
-    )
 
     # ================= Explanation =================
 
@@ -387,23 +379,25 @@ if (
 ):
 
     columns, rows = execute_query(
-    "SELECT * FROM employees",
-    db_path
+        st.session_state.sql_query,
+        db_path
     )
 
-    df = pd.DataFrame(
-        rows,
-        columns=columns
-    )
+    if columns:
 
-    st.subheader(
-        "Updated Employees Table"
-    )
+        df = pd.DataFrame(
+            rows,
+            columns=columns
+        )
 
-    st.dataframe(
-        df,
-        use_container_width=True
-    )
+        st.subheader(
+            "Updated Table"
+        )
+
+        st.dataframe(
+            df,
+            use_container_width=True
+        )
 
 # ===================================================
 # BLOCKED QUERIES
