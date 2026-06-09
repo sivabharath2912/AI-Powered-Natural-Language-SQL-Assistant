@@ -1,0 +1,44 @@
+Query: Show all employees
+Expected Output:
+Display all employee records.
+
+------------------------------------------------
+
+Query: Show employees earning above 70000
+Expected Output:
+Display employees whose salary is greater than 70000.
+
+------------------------------------------------
+
+Query: Show employees in IT department
+Expected Output:
+Display employees belonging to the IT department.
+
+------------------------------------------------
+
+Query: Show employees with more than 5 years experience
+Expected Output:
+Display employees having experience greater than 5 years.
+
+------------------------------------------------
+
+Query: Add a new employee named Ram in IT department with salary 65000 and experience 3 years
+Expected Output:
+Generate INSERT query.
+Require user confirmation before execution.
+Insert new employee into database.
+
+------------------------------------------------
+
+Query: Increase John's salary to 80000
+Expected Output:
+Generate UPDATE query.
+Require user confirmation before execution.
+Update employee salary.
+
+------------------------------------------------
+
+Query: Delete all employees
+Expected Output:
+Query blocked by validator.
+Display safety warning.

@@ -1,53 +1,50 @@
 import sqlite3
 
-import os
 
-BASE_DIR = os.path.dirname(
-    os.path.dirname(
-        os.path.abspath(__file__)
-    )
-)
+def get_schema(db_path):
 
-DB_PATH = os.path.join(
-    BASE_DIR,
-    "database",
-    "company.db"
-)
-def get_schema():
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(db_path)
+
     cursor = conn.cursor()
 
-    schema_info = ""
-
     # Get all tables
-    cursor.execute("""
-        SELECT name
-        FROM sqlite_master
-        WHERE type='table';
-    """)
+    cursor.execute(
+        "SELECT name FROM sqlite_master WHERE type='table';"
+    )
 
     tables = cursor.fetchall()
 
+    schema = ""
+
+    # Get columns of each table
     for table in tables:
+
         table_name = table[0]
 
-        schema_info += f"\nTable: {table_name}\n"
+        schema += f"\nTable: {table_name}\n"
 
         cursor.execute(
-            f"PRAGMA table_info({table_name});"
+            f"PRAGMA table_info({table_name})"
         )
 
         columns = cursor.fetchall()
 
         for column in columns:
-            schema_info += (
-                f" - {column[1]}\n"
+
+            schema += (
+                f"{column[1]} ({column[2]})\n"
             )
 
     conn.close()
 
-    return schema_info
+    return schema
 
 
+# Testing Section
 if __name__ == "__main__":
-    print(get_schema())
+
+    db_path = "database/company.db"
+
+    schema = get_schema(db_path)
+
+    print(schema)

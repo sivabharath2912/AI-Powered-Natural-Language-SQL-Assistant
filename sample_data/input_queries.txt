@@ -1,0 +1,7 @@
+1. Show all employees
+2.Show employees earning above 70000
+3.Show employees in IT department
+4.Show employees with more than 5 years experience
+5.Add a new employee named Ram in IT department with salary 65000 and experience 3 years
+6.Increase John's salary to 80000
+7.Delete all employees

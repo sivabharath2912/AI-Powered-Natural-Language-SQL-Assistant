@@ -11,9 +11,14 @@ client = Groq(
 )
 
 
-def generate_sql(user_query):
+def generate_sql(
+    user_query,
+    db_path
+):
 
-    schema = get_schema()
+    schema = get_schema(
+        db_path
+    )
 
     prompt = f"""
 Database Schema:
@@ -46,11 +51,22 @@ Rules:
     return sql_query
 
 
+# Testing Section
 if __name__ == "__main__":
 
-    question = input("Enter question: ")
+    db_path = "database/company.db"
 
-    sql = generate_sql(question)
+    question = input(
+        "Enter question: "
+    )
 
-    print("\nGenerated SQL:\n")
+    sql = generate_sql(
+        question,
+        db_path
+    )
+
+    print(
+        "\nGenerated SQL:\n"
+    )
+
     print(sql)

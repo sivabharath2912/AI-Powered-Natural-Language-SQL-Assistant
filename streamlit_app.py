@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import shutil
+import os
 
 from agent.sql_generator import generate_sql
 from agent.validator import classify_sql
@@ -10,12 +11,87 @@ from agent.explainer import explain_results
 
 st.set_page_config(
     page_title="AI SQL Assistant",
-    layout="wide"
+    page_icon="🤖",
+    layout="wide",
+    initial_sidebar_state="expanded"
 )
 
-st.title(
-    "🤖 AI-Powered Natural Language SQL Assistant"
+st.markdown("""
+<style>
+
+.stApp {
+    background: linear-gradient(to right, #0f2027, #203a43, #2c5364);
+}
+
+section[data-testid="stSidebar"] {
+    background: rgba(255,255,255,0.1);
+    backdrop-filter: blur(10px);
+}
+
+div[data-testid="metric-container"] {
+    background: rgba(255,255,255,0.15);
+    backdrop-filter: blur(15px);
+    border-radius: 20px;
+    padding: 20px;
+}
+
+.stButton > button {
+    background: linear-gradient(to right, #00c6ff, #0072ff);
+    color: white;
+    border-radius: 20px;
+    font-size: 16px;
+    font-weight: bold;
+}
+
+h1 {
+    color: #00e5ff;
+}
+
+</style>
+""", unsafe_allow_html=True)
+
+st.markdown(
+"""
+# 🤖 AI-Powered Natural Language SQL Assistant
+
+Interact with databases using natural language powered by Llama 3.3 and Groq API.
+"""
 )
+
+# ================= Database Upload =================
+
+os.makedirs(
+    "uploaded_databases",
+    exist_ok=True
+)
+
+uploaded_file = st.sidebar.file_uploader(
+    "Upload SQLite Database",
+    type=["db"]
+)
+
+# Default database
+db_path = "database/company.db"
+
+if uploaded_file is not None:
+
+    db_path = os.path.join(
+        "uploaded_databases",
+        uploaded_file.name
+    )
+
+    with open(
+        db_path,
+        "wb"
+    ) as file:
+
+        file.write(
+            uploaded_file.getbuffer()
+        )
+
+    st.sidebar.success(
+        f"{uploaded_file.name} uploaded successfully."
+    )
 
 
 # ================= Session State =================
@@ -41,18 +117,23 @@ st.sidebar.title(
     "AI SQL Assistant"
 )
 
+
+
 # ================= Database Statistics =================
 
 employee_columns, employee_rows = execute_query(
-    "SELECT COUNT(*) AS total_employees FROM employees"
+    "SELECT COUNT(*) AS total_employees FROM employees",
+    db_path
 )
 
 department_columns, department_rows = execute_query(
-    "SELECT COUNT(*) AS total_departments FROM departments"
+    "SELECT COUNT(*) AS total_departments FROM departments",
+    db_path
 )
 
 salary_columns, salary_rows = execute_query(
-    "SELECT AVG(salary) AS average_salary FROM employees"
+    "SELECT AVG(salary) AS average_salary FROM employees",
+    db_path
 )
 
 st.sidebar.subheader(
@@ -106,9 +187,16 @@ if st.sidebar.button(
 
 # ================= Input =================
 
-user_query = st.text_input(
-    "Enter your question:"
-)
+with st.container():
+
+    st.subheader(
+        "Ask Your Question"
+    )
+
+    user_query = st.text_input(
+        "",
+        placeholder="Example: Show employees earning above 70000"
+    )
 
 
 if st.button(
@@ -124,7 +212,8 @@ if st.button(
         )
 
         st.session_state.sql_query = generate_sql(
-            user_query
+             user_query,
+            db_path
         )
 
         st.session_state.operation_type = classify_sql(
@@ -135,23 +224,14 @@ if st.button(
 
 if st.session_state.sql_query:
 
-    st.subheader(
+    with st.expander(
         "Generated SQL"
-    )
+    ):
 
-    st.code(
-        st.session_state.sql_query
-    )
-
-if st.session_state.sql_query:
-
-    st.subheader(
-        "Generated SQL"
-    )
-
-    st.code(
-        st.session_state.sql_query
-    )
+        st.code(
+            st.session_state.sql_query,
+            language="sql"
+        )
 
 # ===================================================
 # SAFE QUERIES (SELECT)
@@ -163,7 +243,8 @@ if (
 ):
 
     columns, rows = execute_query(
-        st.session_state.sql_query
+    st.session_state.sql_query,
+    db_path
     )
 
     df = pd.DataFrame(
@@ -172,25 +253,32 @@ if (
     )
 
     # Query Results
-    st.subheader(
-        "Query Results"
+
+    csv = df.to_csv(
+        index=False
+    )   
+    left_col, right_col = st.columns(
+        [3,1]
     )
+
+    with left_col:
+
+        st.subheader(
+            "Query Results"
+        )
+
+    with right_col:
+
+        st.download_button(
+            label="📥 Download CSV",
+            data=csv,
+            file_name="results.csv",
+            mime="text/csv"
+        )
 
     st.dataframe(
         df,
         use_container_width=True
-    )
-
-    # Download CSV
-    csv = df.to_csv(
-        index=False
-    )
-
-    st.download_button(
-        label="Download CSV",
-        data=csv,
-        file_name="results.csv",
-        mime="text/csv"
     )
 
     # ================= Salary Distribution =================
@@ -225,7 +313,8 @@ if (
     JOIN departments d
     ON e.department_id = d.department_id
     GROUP BY d.department_name
-    """
+    """,
+    db_path
     )
 
     dept_df = pd.DataFrame(
@@ -278,8 +367,9 @@ elif (
     ):
 
         execute_query(
-            st.session_state.sql_query
-        )
+         st.session_state.sql_query,
+        db_path
+    )
 
         st.success(
             "Query executed successfully ✅"
@@ -297,7 +387,8 @@ if (
 ):
 
     columns, rows = execute_query(
-        "SELECT * FROM employees"
+    "SELECT * FROM employees",
+    db_path
     )
 
     df = pd.DataFrame(
